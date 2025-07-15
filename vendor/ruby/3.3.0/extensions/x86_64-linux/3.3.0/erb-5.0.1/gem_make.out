@@ -1,0 +1,18 @@
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/erb-5.0.1/ext/erb/escape
+/home/deq/.asdf/installs/ruby/3.3.5/bin/ruby extconf.rb
+creating Makefile
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/erb-5.0.1/ext/erb/escape
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-d1812b sitelibdir\=./.gem.20250715-212647-d1812b clean
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/erb-5.0.1/ext/erb/escape
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-d1812b sitelibdir\=./.gem.20250715-212647-d1812b
+compiling escape.c
+linking shared-object erb/escape.so
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/erb-5.0.1/ext/erb/escape
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-d1812b sitelibdir\=./.gem.20250715-212647-d1812b install
+/usr/bin/install -c -m 0755 escape.so ./.gem.20250715-212647-d1812b/erb
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/erb-5.0.1/ext/erb/escape
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-d1812b sitelibdir\=./.gem.20250715-212647-d1812b clean

@@ -1,0 +1,44 @@
+<div class="row">
+  <div class="col-12">
+    <h1>Envelope Status</h1>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <% if @envelopes.any? %>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Document Name</th>
+              <th>Envelope ID</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @envelopes.each do |envelope| %>
+              <tr>
+                <td><%= envelope['document_name'] %></td>
+                <td><code><%= envelope['envelope_id'] %></code></td>
+                <td>
+                  <span class="badge bg-<%= envelope['current_status'] == 'completed' ? 'success' : 'primary' %>">
+                    <%= envelope['current_status']&.titleize %>
+                  </span>
+                </td>
+                <td><%= envelope['created_at'] %></td>
+                <td><%= envelope['updated_at'] || envelope['created_at'] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="alert alert-info">
+        No envelopes found. <%= link_to "Send a document", root_path %> to get started.
+      </div>
+    <% end %>
+  </div>
+</div>

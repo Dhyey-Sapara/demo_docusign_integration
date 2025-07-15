@@ -1,0 +1,19 @@
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/debug-1.11.0/ext/debug
+/home/deq/.asdf/installs/ruby/3.3.5/bin/ruby extconf.rb
+creating Makefile
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/debug-1.11.0/ext/debug
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-qhkh0j sitelibdir\=./.gem.20250715-212647-qhkh0j clean
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/debug-1.11.0/ext/debug
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-qhkh0j sitelibdir\=./.gem.20250715-212647-qhkh0j
+compiling debug.c
+compiling iseq_collector.c
+linking shared-object debug/debug.so
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/debug-1.11.0/ext/debug
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-qhkh0j sitelibdir\=./.gem.20250715-212647-qhkh0j install
+/usr/bin/install -c -m 0755 debug.so ./.gem.20250715-212647-qhkh0j/debug
+
+current directory: /home/deq/Desktop/docusign/demo_docusign_api_integration/vendor/ruby/3.3.0/gems/debug-1.11.0/ext/debug
+make DESTDIR\= sitearchdir\=./.gem.20250715-212647-qhkh0j sitelibdir\=./.gem.20250715-212647-qhkh0j clean
