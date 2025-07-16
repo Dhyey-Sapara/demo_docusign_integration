@@ -23,6 +23,6 @@ module DemoDocusignApiIntegration
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
-    config.hosts << "7bd06acd8194.ngrok-free.app"
+    config.hosts << "b3fbdb840d0c.ngrok-free.app"
   end
 end
