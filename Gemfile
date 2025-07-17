@@ -67,3 +67,4 @@ end
 gem 'docusign_esign'
 gem 'dotenv-rails'
 gem 'pry'
+gem 'sidekiq'

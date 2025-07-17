@@ -33,4 +33,4 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 /vendor/*
-/config/private_key.pem
+config/private_key.pem

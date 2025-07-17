@@ -25,8 +25,8 @@ class DocusignController < ApplicationController
       document.document_id = "1"
 
       signer = Signer.new
-      signer.email = "rahul.jha@united-signals.com"
-      signer.name = "Rahul Jha"
+      signer.email = "dhyeysapara5422@gmail.com"
+      signer.name = "Dhyey Sapara"
       signer.recipient_id = "1"
       signer.routing_order = "1"
       signer.client_user_id = "1234" # Required for embedded signing
@@ -46,28 +46,43 @@ class DocusignController < ApplicationController
       recipients = Recipients.new
       recipients.signers = [ signer ]
 
+      # Envelope defination is here
       envelope_definition = EnvelopeDefinition.new
       envelope_definition.email_subject = "Please sign: #{document_name}"
       envelope_definition.documents = [ document ]
       envelope_definition.recipients = recipients
       envelope_definition.status = "sent"
-      envelope_definition.brand_id = "15b33761-7037-4092-9e0b-01ad4ef9aba7"
+      # envelope_definition.brand_id = "15b33761-7037-4092-9e0b-01ad4ef9aba7"
 
+      # Event data for webhook is here
       event_data = DocuSign_eSign::ConnectEventData.new
       event_data.format = "json"
       event_data.version = "restv2.1"
       event_data.include_data = [ "recipients" ]
 
+      # envelope exipration is here
+      envelope_expiration = DocuSign_eSign::Expirations.new
+      envelope_expiration.expire_enabled = 'true'
+      envelope_expiration.expire_after = '1'
+
+      # notfication object is here
+      notification = DocuSign_eSign::Notification.new
+      notification.expirations = envelope_expiration
+      envelope_definition.notification = notification
+
+      # event notification object is created here
       event_notification = DocuSign_eSign::EventNotification.new
       event_notification.delivery_mode = "aggregate"
       event_notification.event_data = event_data
       event_notification.include_hmac = true
-      event_notification.url = "https://b3fbdb840d0c.ngrok-free.app/docusign/webhook?token=test"
+      event_notification.include_envelope_void_reason = true
+      event_notification.url = "https://e5a9db81ca3c.ngrok-free.app/docusign/webhook?token=test"
       event_notification.require_acknowledgment = true
       event_notification.logging_enabled = true
       event_notification.include_documents = true
+      event_notification.filter = true
+      event_notification.envelope_events = [ DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "completed"), DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "voided") ]
 
-      event_notification.envelope_events = [ DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "completed") ]
       envelope_definition.event_notification = event_notification
 
       begin
@@ -99,6 +114,8 @@ class DocusignController < ApplicationController
         created_at: Time.current.iso8601,
         status: "sent"
       }
+
+      VoidEnvelopeJob.set(wait: 60.seconds).perform_later(envelope_id, session[:docusign_access_token])
 
       redirect_to view_url.url, allow_other_host: true # Send user to the signing ceremony
     rescue => e
@@ -134,11 +151,18 @@ class DocusignController < ApplicationController
   end
 
   def webhook
+    received_signature = request.headers["X-DocuSign-Signature-1"]
+    secret = ENV["DOCUSIGN_HMAC_SECRET"]
+    body = request.raw_post
     binding.pry
-    # authenticate_or_request_with_http_basic do |username, password|
-    #   binding.pry
-    #   username == "webhook_user" && password == "super_secret_password"
-    # end
+    expected_signature = Base64.strict_encode64(
+      OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, body)
+    )
+
+    unless ActiveSupport::SecurityUtils.secure_compare(expected_signature, received_signature)
+      Rails.logger.warn("❌ HMAC verification failed!")
+      head :unauthorized and return
+    end
     envelope_id = params[:data][:envelopeId]
     status = params[:data][:envelopeSummary][:status]
 
