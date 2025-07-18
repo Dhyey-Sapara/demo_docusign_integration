@@ -4,10 +4,9 @@ class DocusignController < ApplicationController
   before_action :ensure_authenticated, except: [ :webhook ]
 
   def send_document
+    user = User.find(1)
     document_name = params[:document_name]
     document_path = get_document_path(document_name)
-
-    return redirect_to root_path, alert: "Document not found" unless document_path
 
     begin
       config = Configuration.new
@@ -15,6 +14,19 @@ class DocusignController < ApplicationController
 
       api_client = ApiClient.new(config)
       api_client.default_headers["Authorization"] = "Bearer #{access_token}"
+      # if %w[in_progress started].include?(user.docusign_status) && user.envelope_id.present?
+      #   recipient_view_request = RecipientViewRequest.new
+      #   recipient_view_request.return_url = "http://localhost:3000"
+      #   recipient_view_request.authentication_method = "none"
+      #   recipient_view_request.user_name = user.username
+      #   recipient_view_request.email = user.email
+      #   recipient_view_request.client_user_id = user.id
+
+      #   envelopes_api = EnvelopesApi.new(api_client)
+      #   view_url = envelopes_api.create_recipient_view(ENV["DOCUSIGN_ACCOUNT_ID"], user.envelope_id, recipient_view_request)
+      #   redirect_to view_url.url, allow_other_host: true
+      #   return
+      # end
 
       document_base64 = Base64.encode64(File.read(Rails.root.join(document_path)))
 
@@ -25,22 +37,30 @@ class DocusignController < ApplicationController
       document.document_id = "1"
 
       signer = Signer.new
-      signer.email = "dhyeysapara5422@gmail.com"
-      signer.name = "Dhyey Sapara"
-      signer.recipient_id = "1"
+      signer.email = user.email
+      signer.name = user.username
+      signer.recipient_id = user.id
       signer.routing_order = "1"
-      signer.client_user_id = "1234" # Required for embedded signing
+      signer.client_user_id = user.id # Required for embedded signing
 
       sign_here = SignHere.new
-      sign_here.document_id = "1"
+      sign_here.document_id = document.document_id
       sign_here.page_number = "1"
-      sign_here.recipient_id = "1"
+      sign_here.recipient_id = user.id
       sign_here.tab_label = "SignHereTab"
       sign_here.x_position = "195"
       sign_here.y_position = "147"
 
+      sign_here2 = SignHere.new
+      sign_here2.document_id = document.document_id
+      sign_here2.page_number = "2"
+      sign_here2.recipient_id = user.id
+      sign_here2.tab_label = "SignHereTab"
+      sign_here2.x_position = "195"
+      sign_here2.y_position = "147"
+
       tabs = Tabs.new
-      tabs.sign_here_tabs = [ sign_here ]
+      tabs.sign_here_tabs = [ sign_here, sign_here2 ]
       signer.tabs = tabs
 
       recipients = Recipients.new
@@ -72,23 +92,28 @@ class DocusignController < ApplicationController
 
       # event notification object is created here
       event_notification = DocuSign_eSign::EventNotification.new
-      event_notification.delivery_mode = "aggregate"
       event_notification.event_data = event_data
       event_notification.include_hmac = true
       event_notification.include_envelope_void_reason = true
       event_notification.url = "https://e5a9db81ca3c.ngrok-free.app/docusign/webhook?token=test"
       event_notification.require_acknowledgment = true
       event_notification.logging_enabled = true
-      event_notification.include_documents = true
-      event_notification.filter = true
-      event_notification.envelope_events = [ DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "completed"), DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "voided") ]
-
+      # event_notification.envelope_events = [
+      #   DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "completed"),
+      #   DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "declined"),
+      #   DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "voided"),
+      #   DocuSign_eSign::EnvelopeEvent.new(envelope_event_status_code: "delivered")
+      # ]
+      event_notification.recipient_events = [
+        DocuSign_eSign::RecipientEvent.new(recipient_event_status_code: "delivered"),
+      ]
       envelope_definition.event_notification = event_notification
 
       begin
         envelopes_api = EnvelopesApi.new(api_client)
         results = envelopes_api.create_envelope(ENV["DOCUSIGN_ACCOUNT_ID"], envelope_definition)
         envelope_id = results.envelope_id
+        user.update(envelope_id:)
       rescue DocuSign_eSign::ApiError => e
         if e.code == 401
           session[:docusign_access_token] = nil
@@ -115,7 +140,9 @@ class DocusignController < ApplicationController
         status: "sent"
       }
 
-      VoidEnvelopeJob.set(wait: 60.seconds).perform_later(envelope_id, session[:docusign_access_token])
+      user.update(docusign_status: "started")
+
+      # VoidEnvelopeJob.set(wait: 60.seconds).perform_later(envelope_id, session[:docusign_access_token])
 
       redirect_to view_url.url, allow_other_host: true # Send user to the signing ceremony
     rescue => e
@@ -151,33 +178,26 @@ class DocusignController < ApplicationController
   end
 
   def webhook
-    received_signature = request.headers["X-DocuSign-Signature-1"]
-    secret = ENV["DOCUSIGN_HMAC_SECRET"]
-    body = request.raw_post
+    parsed_data = JSON.parse request.body.read
+    status = parsed_data["status"]
+    user = User.find_by(envelope_id: parsed_data["envelopeId"])
+
     binding.pry
-    expected_signature = Base64.strict_encode64(
-      OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, body)
-    )
 
-    unless ActiveSupport::SecurityUtils.secure_compare(expected_signature, received_signature)
-      Rails.logger.warn("❌ HMAC verification failed!")
-      head :unauthorized and return
-    end
-    envelope_id = params[:data][:envelopeId]
-    status = params[:data][:envelopeSummary][:status]
-
-    if session[:envelopes]
-      session[:envelopes].each do |envelope|
-        if envelope["envelope_id"] == envelope_id
-          envelope["status"] = status
-          envelope["updated_at"] = Time.current.iso8601
-        end
-      end
+    case status
+    when "completed"
+      DownloadDocusignSignedDocumentsJob.perform_later(user)
+      user.update(docusign_status: status, completed_at: Time.parse(parsed_data["statusChangedDateTime"]))
+    when "declined"
+      user.update(docusign_status: status)
+      # user.reason = parsed_data.dig("recipients", "signers", 0, "declinedReason")
+    when "voided"
+      user.update(docusign_status: status)
+    when "delivered"
+      user.update(docusign_status: "in_progress")
     end
 
-    Rails.logger.info "Webhook received for envelope #{envelope_id}: #{status}"
-
-    head :ok
+    puts parsed_data
   end
 
   private

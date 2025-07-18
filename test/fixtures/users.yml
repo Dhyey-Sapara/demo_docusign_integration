@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  username: MyString
+  envelope_id: MyText
+  email: MyText
+
+two:
+  username: MyString
+  envelope_id: MyText
+  email: MyText

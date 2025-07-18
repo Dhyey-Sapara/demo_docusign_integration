@@ -21,6 +21,7 @@ class AuthController < ApplicationController
       expires_in_seconds = token_response.expires_in.to_i
 
       # Store token in session
+      RedisStorage.set_value("docusign_access_token", token_response.access_token)
       session[:docusign_access_token] = token_response.access_token
       session[:docusign_token_expires_at] = Time.current.to_i + (expires_in_seconds * 60)
 

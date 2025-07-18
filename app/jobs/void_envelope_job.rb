@@ -24,7 +24,7 @@ class VoidEnvelopeJob < ApplicationJob
 
       Rails.logger.info "Envelope #{envelope_id} voided successfully due to expiration"
     else
-      Rails.logger.info "Envelope #{envelope_id} already completed or voided, no action needed"
+      Rails.logger.info "Envelope #{envelope_id} already completed/voided. No action needed. Final status: #{envelope.status}"
     end
 
   rescue DocuSign_eSign::ApiError => e
